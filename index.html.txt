@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Forex Trading Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .chart-container {
+            position: relative;
+            height: 500px;
+        }
+        .pattern-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .pattern-marker {
+            position: absolute;
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 10px;
+            font-weight: bold;
+            z-index: 10;
+        }
+        .animated-gradient {
+            background: linear-gradient(270deg, #3b82f6, #8b5cf6, #ec4899);
+            background-size: 600% 600%;
+            animation: gradientShift 8s ease infinite;
+        }
+        @keyframes gradientShift {
+            0% {background-position: 0% 50%}
+            50% {background-position: 100% 50%}
+            100% {background-position: 0% 50%}
+        }
+        .grid-bg {
+            background-image: radial-gradient(circle, #2d374850 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .signal-buy {
+            animation: pulseBuy 2s infinite;
+        }
+        .signal-sell {
+            animation: pulseSell 2s infinite;
+        }
+        @keyframes pulseBuy {
+            0% {box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7)}
+            70% {box-shadow: 0 0 0 10px rgba(16, 185, 129, 0)}
+            100% {box-shadow: 0 0 0 0 rgba(16, 185, 129, 0)}
+        }
+        @keyframes pulseSell {
+            0% {box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7)}
+            70% {box-shadow: 0 0 0 10px rgba(239, 68, 68, 0)}
+            100% {box-shadow: 0 0 0 0 rgba(239, 68, 68, 0)}
+        }
+        .drawing-tool {
+            transition: all 0.2s ease;
+        }
+        .drawing-tool:hover {
+            transform: scale(1.1);
+            background-color: rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans">
+    <!-- Header -->
+    <header class="border-b border-gray-700">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="bg-blue-500 p-2 rounded-full">
+                        <i class="fas fa-robot text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold bg-clip-text text-transparent animated-gradient">
+                        Forex <span class="font-light">Vision</span>
+                    </h1>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:flex space-x-2">
+                        <button class="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded-md text-sm">
+                            <i class="fas fa-user-plus mr-1"></i> Connect Broker
+                        </button>
+                        <button class="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-md text-sm">
+                            <i class="fas fa-bolt mr-1"></i> Live Mode
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <button id="user-menu" class="flex items-center space-x-2 focus:outline-none">
+                            <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                                <span class="text-xs font-bold">AD</span>
+                            </div>
+                        </button>
+                        <div id="menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg z-10 border border-gray-700">
+                            <div class="py-1">
+                                <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-700">Profile</a>
+                                <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-700">Settings</a>
+                                <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-700">Sign out</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Left Sidebar -->
+        <div class="lg:col-span-1 space-y-4">
+            <!-- Model Status -->
+            <div class="bg-gray-800 rounded-lg shadow p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-semibold text-blue-400">Model Status</h3>
+                    <div class="flex items-center">
+                        <span class="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
+                        <span class="text-xs">Active</span>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>CV Module</span>
+                            <span>78% accuracy</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: 78%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>Time Series</span>
+                            <span>65% accuracy</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-purple-500 h-2 rounded-full" style="width: 65%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>Signal Engine</span>
+                            <span>82% win rate</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 82%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pair Selector -->
+            <div class="bg-gray-800 rounded-lg shadow p-4">
+                <h3 class="font-semibold text-blue-400 mb-3">Market Watch</h3>
+                <div class="relative">
+                    <input type="text" placeholder="Search pairs..." class="w-full bg-gray-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mb-2">
+                </div>
+                <div class="overflow-y-auto max-h-60">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer border-l-4 border-blue-500">
+                            <div>
+                                <span class="font-medium">EUR/USD</span>
+                                <span class="text-xs text-gray-400 block">Euro / US Dollar</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-green-400">1.0924</span>
+                                <span class="text-xs block text-green-400">+0.24%</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer">
+                            <div>
+                                <span class="font-medium">GBP/USD</span>
+                                <span class="text-xs text-gray-400 block">Pound / US Dollar</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-red-400">1.2702</span>
+                                <span class="text-xs block text-red-400">-0.12%</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer">
+                            <div>
+                                <span class="font-medium">USD/JPY</span>
+                                <span class="text-xs text-gray-400 block">US Dollar / Yen</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-green-400">148.92</span>
+                                <span class="text-xs block text-green-400">+0.45%</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer">
+                            <div>
+                                <span class="font-medium">AUD/USD</span>
+                                <span class="text-xs text-gray-400 block">Aussie / US Dollar</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-green-400">0.6618</span>
+                                <span class="text-xs block text-green-400">+0.18%</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer">
+                            <div>
+                                <span class="font-medium">USD/CAD</span>
+                                <span class="text-xs text-gray-400 block">US Dollar / Loonie</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-red-400">1.3451</span>
+                                <span class="text-xs block text-red-400">-0.08%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drawing Tools -->
+            <div class="bg-gray-800 rounded-lg shadow p-4">
+                <h3 class="font-semibold text-blue-400 mb-3">Pattern Tools</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center">
+                        <i class="fas fa-sliders-h text-blue-400 mb-1"></i>
+                        <span class="text-xs">Structure</span>
+                    </button>
+                    <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center">
+                        <i class="fas fa-chart-line text-purple-400 mb-1"></i>
+                        <span class="text-xs">Trendline</span>
+                    </button>
+                    <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center">
+                        <i class="fas fa-border-none text-green-400 mb-1"></i>
+                        <span class="text-xs">Zone</span>
+                    </button>
+                    <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center">
+                        <i class="fas fa-chart-bar text-yellow-400 mb-1"></i>
+                        <span class="text-xs">Fib</span>
+                    </button>
+                    <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center">
+                        <i class="fas fa-pen text-red-400 mb-1"></i>
+                        <span class="text-xs">Draw</span>
+                    </button>
+                    <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center">
+                        <i class="fas fa-search text-indigo-400 mb-1"></i>
+                        <span class="text-xs">AI Scan</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chart Area -->
+        <div class="lg:col-span-2">
+            <!-- Chart Toolbar -->
+            <div class="bg-gray-800 rounded-t-lg p-3 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="flex space-x-1 bg-gray-700 rounded p-1">
+                        <button class="px-2 py-1 rounded text-xs bg-gray-600">1MIN</button>
+                        <button class="px-2 py-1 rounded text-xs">5MIN</button>
+                        <button class="px-2 py-1 rounded text-xs">15MIN</button>
+                        <button class="px-2 py-1 rounded text-xs">1H</button>
+                        <button class="px-2 py-1 rounded text-xs">4H</button>
+                        <button class="px-2 py-1 rounded text-xs">D</button>
+                    </div>
+                    <div class="hidden md:flex space-x-2">
+                        <button class="px-2 py-1 rounded text-xs bg-gray-700 border border-gray-600">Candles</button>
+                        <button class="px-2 py-1 rounded text-xs border border-gray-600">Heikin Ashi</button>
+                        <button class="px-2 py-1 rounded text-xs border border-gray-600">Line</button>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button class="p-1 rounded text-gray-400 hover:text-white">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button class="p-1 rounded text-gray-400 hover:text-white">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chart Container -->
+            <div class="chart-container bg-gray-800 rounded-b-lg p-2 relative">
+                <!-- This would be replaced with actual charting library in production -->
+                <div class="h-full w-full grid-bg rounded relative overflow-hidden">
+                    <!-- Mock candlestick chart -->
+                    <canvas id="mockChart" width="800" height="500" class="w-full h-full"></canvas>
+                    
+                    <!-- Pattern markers would be positioned here -->
+                    <div class="pattern-markers">
+                        <div class="pattern-marker bg-green-600 text-white" style="top: 30%; left: 20%;">BOS</div>
+                        <div class="pattern-marker bg-blue-600 text-white" style="top: 45%; left: 45%;">CHOCH</div>
+                        <div class="pattern-marker bg-purple-600 text-white" style="top: 60%; left: 70%;">OB</div>
+                    </div>
+                </div>
+                
+                <!-- Chart watermark -->
+                <div class="absolute bottom-2 right-4 text-xs text-gray-500">
+                    AI-Powered by Forex Vision • {Date} {Time}
+                </div>
+            </div>
+
+            <!-- Signals Panel -->
+            <div class="mt-4 bg-gray-800 rounded-lg shadow p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-blue-400">Live Signals</h3>
+                    <div class="text-xs">
+                        <span class="py-1 px-2 rounded-full bg-gray-700">Detected: 3</span>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="p-3 rounded-md bg-gray-700 border-l-4 border-green-500">
+                        <div class="flex justify-between items-center mb-1">
+                            <div class="font-medium text-green-400">
+                                <i class="fas fa-arrow-up mr-1"></i> BUY EUR/USD
+                            </div>
+                            <span class="text-xs bg-green-900 text-green-300 py-0.5 px-1.5 rounded">High Confidence</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-400">
+                            <div>
+                                <span>Entry: 1.0920</span>
+                                <span class="mx-2">|</span>
+                                <span>SL: 1.0895 (-25pips)</span>
+                                <span class="mx-2">|</span>
+                                <span>TP: 1.0955 (+35pips)</span>
+                            </div>
+                            <div>
+                                <span>15min TF</span>
+                                <span class="mx-2">|</span>
+                                <span>Structure Break</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 rounded-md bg-gray-700 border-l-4 border-red-500">
+                        <div class="flex justify-between items-center mb-1">
+                            <div class="font-medium text-red-400">
+                                <i class="fas fa-arrow-down mr-1"></i> SELL GBP/USD
+                            </div>
+                            <span class="text-xs bg-yellow-900 text-yellow-300 py-0.5 px-1.5 rounded">Medium Confidence</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-400">
+                            <div>
+                                <span>Entry: 1.2708</span>
+                                <span class="mx-2">|</span>
+                                <span>SL: 1.2728 (-20pips)</span>
+                                <span class="mx-2">|</span>
+                                <span>TP: 1.2668 (+40pips)</span>
+                            </div>
+                            <div>
+                                <span>1H TF</span>
+                                <span class="mx-2">|</span>
+                                <span>Order Block</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 rounded-md bg-gray-700 border-l-4 border-indigo-500">
+                        <div class="flex justify-between items-center mb-1">
+                            <div class="font-medium text-indigo-400">
+                                <i class="fas fa-eye mr-1"></i> WATCH USD/JPY
+                            </div>
+                            <span class="text-xs bg-blue-900 text-blue-300 py-0.5 px-1.5 rounded">Potential</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-400">
+                            <div>
+                                <span>Current: 148.92</span>
+                                <span class="mx-2">|</span>
+                                <span>Key Level: 149.20</span>
+                            </div>
+                            <div>
+                                <span>4H TF</span>
+                                <span class="mx-2">|</span>
+                                <span>Liquidation Zone</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="lg:col-span-1 space-y-4">
+            <!-- Risk Management Panel -->
+            <div class="bg-gray-800 rounded-lg shadow p-4">
+                <h3 class="font-semibold text-blue-400 mb-3">Risk Management</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>Daily Risk Limit</span>
+                            <span>2.5% / $250</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-red-500 h-2 rounded-full" style="width: 35%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>Max Position Size</span>
+                            <span>5% / $500</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: 20%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>Max Drawdown</span>
+                            <span>10% / $1000</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-yellow-500 h-2 rounded-full" style="width: 15%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-3 border-t border-gray-700">
+                        <div class="flex justify-between text-xs text-gray-400">
+                            <span>Open Positions:</span>
+                            <span class="text-blue-400">3</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>Total Exposure:</span>
+                            <span class="text-purple-400">$750</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>Available Margin:</span>
+                            <span class="text-green-400">$9,250</span>
+                        </div>
+                    </div>
+                    
+                    <button class="w-full mt-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-sm flex items-center justify-center">
+                        <i class="fas fa-shield-alt mr-2"></i> Adjust Risk Settings
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pattern Recognition -->
+            <div class="bg-gray-800 rounded-lg shadow p-4">
+                <h3 class="font-semibold text-blue-400 mb-3">Detected Patterns</h3>
+                
+                <div class="space-y-3">
+                    <div class="flex space-x-3 p-2 hover:bg-gray-700 rounded cursor-pointer">
+                        <div class="w-12 h-12 bg-gray-700 rounded flex items-center justify-center">
+                            <i class="fas fa-chart-line text-lg text-yellow-500"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium">Break of Structure</div>
+                            <div class="text-xs text-gray-400">EUR/USD, 15min TF</div>
+                        </div>
+                        <div class="text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded-full h-6 self-center">
+                            82%
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-3 p-2 hover:bg-gray-700 rounded cursor-pointer">
+                        <div class="w-12 h-12 bg-gray-700 rounded flex items-center justify-center">
+                            <i class="fas fa-chart-bar text-lg text-purple-500"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium">Order Block</div>
+                            <div class="text-xs text-gray-400">USD/JPY, 1H TF</div>
+                        </div>
+                        <div class="text-xs bg-green-900 text-green-300 px-2 py-1 rounded-full h-6 self-center">
+                            76%
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-3 p-2 hover:bg-gray-700 rounded cursor-pointer">
+                        <div class="w-12 h-12 bg-gray-700 rounded flex items-center justify-center">
+                            <i class="fas fa-exchange-alt text-lg text-red-500"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium">Liquidity Grab</div>
+                            <div class="text-xs text-gray-400">GBP/USD, 4H TF</div>
+                        </div>
+                        <div class="text-xs bg-yellow-900 text-yellow-300 px-2 py-1 rounded-full h-6 self-center">
+                            68%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Notifications -->
+            <div class="bg-gray-800 rounded-lg shadow p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-semibold text-blue-400">System Log</h3>
+                    <button class="text-xs text-gray-400">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-3 max-h-40 overflow-y-auto">
+                    <div class="flex space-x-2 text-xs">
+                        <div class="text-yellow-500 pt-0.5">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <div>
+                            <div>New pattern detected: Fair Value Gap</div>
+                            <div class="text-gray-500">2 mins ago</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 text-xs">
+                        <div class="text-green-500 pt-0.5">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div>Model retrained (accuracy +1.2%)</div>
+                            <div class="text-gray-500">15 mins ago</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 text-xs">
+                        <div class="text-blue-500 pt-0.5">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <div>
+                            <div>Connected to broker (IC Markets)</div>
+                            <div class="text-gray-500">32 mins ago</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 text-xs">
+                        <div class="text-purple-500 pt-0.5">
+                            <i class="fas fa-network-wired"></i>
+                        </div>
+                        <div>
+                            <div>Streaming live price data</div>
+                            <div class="text-gray-500">1 hr ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock chart drawing
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('mockChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Chart dimensions
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Grid lines
+            ctx.strokeStyle = '#2d3748';
+            ctx.lineWidth = 1;
+            
+            // Vertical grid lines
+            for (let x = 0; x <= width; x += width / 10) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            
+            // Horizontal grid lines
+            for (let y = 0; y <= height; y += height / 8) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+            
+            // Candlesticks
+            const candles = [
+                {x: 50, o: 60, h: 80, l: 40, c: 70, color: 'green'},
+                {x: 100, o: 70, h: 90, l: 60, c: 80, color: 'green'},
+                {x: 150, o: 80, h: 100, l: 70, c: 90, color: 'green'},
+                {x: 200, o: 90, h: 110, l: 85, c: 85, color: 'red'},
+                {x: 250, o: 85, h: 95, l: 60, c: 65, color: 'red'},
+                {x: 300, o: 65, h: 75, l: 50, c: 70, color: 'green'},
+                {x: 350, o: 70, h: 90, l: 65, c: 85, color: 'green'},
+                {x: 400, o: 85, h: 110, l: 80, c: 105, color: 'green'},
+                {x: 450, o: 105, h: 120, l: 95, c: 100, color: 'red'},
+                {x: 500, o: 100, h: 110, l: 90, c: 95, color: 'red'},
+                {x: 550, o: 95, h: 115, l: 90, c: 110, color: 'green'},
+                {x: 600, o: 110, h: 130, l: 105, c: 125, color: 'green'},
+                {x: 650, o: 125, h: 140, l: 120, c: 135, color: 'green'},
+                {x: 700, o: 135, h: 150, l: 130, c: 140, color: 'green'},
+                {x: 750, o: 140, h: 160, l: 135, c: 145, color: 'green'},
+            ];
+            
+            // Scale candles to chart height
+            const scaleCandles = candles.map(c => ({
+                x: c.x,
+                o: height - (c.o * 2.5),
+                h: height - (c.h * 2.5),
+                l: height - (c.l * 2.5),
+                c: height - (c.c * 2.5),
+                color: c.color
+            }));
+            
+            // Draw candlesticks
+            scaleCandles.forEach(candle => {
+                // Wick
+                ctx.strokeStyle = candle.color === 'green' ? '#10b981' : '#ef4444';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(candle.x, candle.h);
+                ctx.lineTo(candle.x, candle.l);
+                ctx.stroke();
+                
+                // Body
+                ctx.fillStyle = candle.color === 'green' ? '#10b981' : '#ef4444';
+                ctx.fillRect(candle.x - 6, candle.o, 12, candle.c - candle.o);
+                ctx.strokeStyle = candle.color === 'green' ? '#059669' : '#dc2626';
+                ctx.strokeRect(candle.x - 6, candle.o, 12, candle.c - candle.o);
+            });
+            
+            // Draw trendlines
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(50, scaleCandles[0].l);
+            ctx.lineTo(350, scaleCandles[6].l);
+            ctx.stroke();
+            
+            ctx.strokeStyle = '#8b5cf6';
+            ctx.beginPath();
+            ctx.moveTo(200, scaleCandles[3].h);
+            ctx.lineTo(500, scaleCandles[9].h);
+            ctx.stroke();
+            
+            // Draw supply zone
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+            ctx.beginPath();
+            ctx.moveTo(400, scaleCandles[7].h - 20);
+            ctx.lineTo(700, scaleCandles[7].h - 20);
+            ctx.lineTo(700, scaleCandles[7].h + 40);
+            ctx.lineTo(400, scaleCandles[7].h + 40);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+            ctx.stroke();
+            
+            // Draw demand zone
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+            ctx.beginPath();
+            ctx.moveTo(100, scaleCandles[1].l + 20);
+            ctx.lineTo(250, scaleCandles[1].l + 20);
+            ctx.lineTo(250, scaleCandles[1].l - 40);
+            ctx.lineTo(100, scaleCandles[1].l - 40);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+            ctx.stroke();
+            
+            // User menu dropdown
+            const userMenu = document.getElementById('user-menu');
+            const menuDropdown = document.getElementById('menu-dropdown');
+            
+            userMenu.addEventListener('click', function() {
+                menuDropdown.classList.toggle('hidden');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!userMenu.contains(event.target) && !menuDropdown.contains(event.target)) {
+                    menuDropdown.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
