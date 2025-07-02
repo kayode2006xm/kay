@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Forex Trading Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .chart-container {
+      position: relative;
+      height: 500px;
+    }
+    .pattern-markers {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .pattern-marker {
+      position: absolute;
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 10px;
+      font-weight: bold;
+      z-index: 10;
+    }
+    .animated-gradient {
+      background: linear-gradient(270deg, #3b82f6, #8b5cf6, #ec4899);
+      background-size: 600% 600%;
+      animation: gradientShift 8s ease infinite;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      color: transparent;
+    }
+    @keyframes gradientShift {
+      0% {background-position: 0% 50%}
+      50% {background-position: 100% 50%}
+      100% {background-position: 0% 50%}
+    }
+    .grid-bg {
+      background-image: radial-gradient(circle, #2d374850 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .signal-buy {
+      animation: pulseBuy 2s infinite;
+    }
+    .signal-sell {
+      animation: pulseSell 2s infinite;
+    }
+    @keyframes pulseBuy {
+      0% {box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7)}
+      70% {box-shadow: 0 0 0 10px rgba(16, 185, 129, 0)}
+      100% {box-shadow: 0 0 0 0 rgba(16, 185, 129, 0)}
+    }
+    @keyframes pulseSell {
+      0% {box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7)}
+      70% {box-shadow: 0 0 0 10px rgba(239, 68, 68, 0)}
+      100% {box-shadow: 0 0 0 0 rgba(239, 68, 68, 0)}
+    }
+    .drawing-tool {
+      transition: all 0.2s ease;
+    }
+    .drawing-tool:hover {
+      transform: scale(1.1);
+      background-color: rgba(59, 130, 246, 0.2);
+    }
+    /* Custom scrollbar for panels */
+    .scrollbar-thin {
+      scrollbar-width: thin;
+      scrollbar-color: #3b82f6 #1f2937;
+    }
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 6px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background: #3b82f6;
+      border-radius: 8px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+      background: #1f2937;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen">
+  <!-- Header -->
+  <header class="border-b border-gray-700">
+    <div class="container mx-auto px-4 py-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-blue-500 p-2 rounded-full" aria-label="AI Logo">
+            <i class="fas fa-robot text-white text-xl" aria-hidden="true"></i>
+          </div>
+          <h1 class="text-2xl font-bold animated-gradient">
+            Forex <span class="font-light">Vision</span>
+          </h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <nav aria-label="Primary actions" class="hidden md:flex space-x-2">
+            <button class="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded-md text-sm" aria-label="Connect Broker">
+              <i class="fas fa-user-plus mr-1" aria-hidden="true"></i> Connect Broker
+            </button>
+            <button class="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-md text-sm" aria-label="Live Mode">
+              <i class="fas fa-bolt mr-1" aria-hidden="true"></i> Live Mode
+            </button>
+          </nav>
+          <div class="relative">
+            <button id="user-menu" class="flex items-center space-x-2 focus:outline-none" aria-haspopup="true" aria-expanded="false" aria-label="User menu">
+              <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                <span class="text-xs font-bold" aria-label="User Initials">AD</span>
+              </div>
+            </button>
+            <div id="menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg z-10 border border-gray-700" role="menu" aria-label="User menu dropdown">
+              <div class="py-1">
+                <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-700" role="menuitem">Profile</a>
+                <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-700" role="menuitem">Settings</a>
+                <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-700" role="menuitem">Sign out</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <!-- Main Content -->
+  <main class="container mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Left Sidebar -->
+    <aside class="lg:col-span-1 space-y-4" aria-label="Sidebar">
+      <!-- Model Status -->
+      <section class="bg-gray-800 rounded-lg shadow p-4" aria-label="Model Status">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold text-blue-400">Model Status</h3>
+          <div class="flex items-center">
+            <span class="h-2 w-2 rounded-full bg-green-500 mr-1" aria-label="Active"></span>
+            <span class="text-xs">Active</span>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>CV Module</span>
+              <span>78% accuracy</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2" aria-label="CV Module Accuracy Bar">
+              <div class="bg-blue-500 h-2 rounded-full" style="width: 78%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>Time Series</span>
+              <span>65% accuracy</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2" aria-label="Time Series Accuracy Bar">
+              <div class="bg-purple-500 h-2 rounded-full" style="width: 65%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>Signal Engine</span>
+              <span>82% win rate</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2" aria-label="Signal Engine Win Rate Bar">
+              <div class="bg-green-500 h-2 rounded-full" style="width: 82%"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Pair Selector -->
+      <section class="bg-gray-800 rounded-lg shadow p-4" aria-label="Market Watch">
+        <h3 class="font-semibold text-blue-400 mb-3">Market Watch</h3>
+        <div class="relative mb-2">
+          <input type="text" aria-label="Search trading pairs" placeholder="Search pairs..." class="w-full bg-gray-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mb-2" id="pair-search">
+        </div>
+        <div class="overflow-y-auto max-h-60 scrollbar-thin" id="pair-list">
+          <!-- Pair cards - will be filtered by JS -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer border-l-4 border-blue-500 pair-item" data-pair="EUR/USD">
+              <div>
+                <span class="font-medium">EUR/USD</span>
+                <span class="text-xs text-gray-400 block">Euro / US Dollar</span>
+              </div>
+              <div class="text-right">
+                <span class="text-green-400">1.0924</span>
+                <span class="text-xs block text-green-400">+0.24%</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer pair-item" data-pair="GBP/USD">
+              <div>
+                <span class="font-medium">GBP/USD</span>
+                <span class="text-xs text-gray-400 block">Pound / US Dollar</span>
+              </div>
+              <div class="text-right">
+                <span class="text-red-400">1.2702</span>
+                <span class="text-xs block text-red-400">-0.12%</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer pair-item" data-pair="USD/JPY">
+              <div>
+                <span class="font-medium">USD/JPY</span>
+                <span class="text-xs text-gray-400 block">US Dollar / Yen</span>
+              </div>
+              <div class="text-right">
+                <span class="text-green-400">148.92</span>
+                <span class="text-xs block text-green-400">+0.45%</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer pair-item" data-pair="AUD/USD">
+              <div>
+                <span class="font-medium">AUD/USD</span>
+                <span class="text-xs text-gray-400 block">Aussie / US Dollar</span>
+              </div>
+              <div class="text-right">
+                <span class="text-green-400">0.6618</span>
+                <span class="text-xs block text-green-400">+0.18%</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-2 hover:bg-gray-700 rounded cursor-pointer pair-item" data-pair="USD/CAD">
+              <div>
+                <span class="font-medium">USD/CAD</span>
+                <span class="text-xs text-gray-400 block">US Dollar / Loonie</span>
+              </div>
+              <div class="text-right">
+                <span class="text-red-400">1.3451</span>
+                <span class="text-xs block text-red-400">-0.08%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Drawing Tools -->
+      <section class="bg-gray-800 rounded-lg shadow p-4" aria-label="Pattern Tools">
+        <h3 class="font-semibold text-blue-400 mb-3">Pattern Tools</h3>
+        <div class="grid grid-cols-3 gap-2">
+          <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center" aria-label="Structure Tool">
+            <i class="fas fa-sliders-h text-blue-400 mb-1" aria-hidden="true"></i>
+            <span class="text-xs">Structure</span>
+          </button>
+          <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center" aria-label="Trendline Tool">
+            <i class="fas fa-chart-line text-purple-400 mb-1" aria-hidden="true"></i>
+            <span class="text-xs">Trendline</span>
+          </button>
+          <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center" aria-label="Zone Tool">
+            <i class="fas fa-border-none text-green-400 mb-1" aria-hidden="true"></i>
+            <span class="text-xs">Zone</span>
+          </button>
+          <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center" aria-label="Fib Tool">
+            <i class="fas fa-chart-bar text-yellow-400 mb-1" aria-hidden="true"></i>
+            <span class="text-xs">Fib</span>
+          </button>
+          <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center" aria-label="Draw Tool">
+            <i class="fas fa-pen text-red-400 mb-1" aria-hidden="true"></i>
+            <span class="text-xs">Draw</span>
+          </button>
+          <button class="drawing-tool p-2 bg-gray-700 rounded flex flex-col items-center justify-center" aria-label="AI Scan Tool">
+            <i class="fas fa-search text-indigo-400 mb-1" aria-hidden="true"></i>
+            <span class="text-xs">AI Scan</span>
+          </button>
+        </div>
+      </section>
+    </aside>
+    <!-- Main Chart Area -->
+    <section class="lg:col-span-2">
+      <!-- Chart Toolbar -->
+      <div class="bg-gray-800 rounded-t-lg p-3 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex space-x-1 bg-gray-700 rounded p-1" role="group" aria-label="Timeframes">
+            <button class="px-2 py-1 rounded text-xs bg-gray-600" aria-label="1 Minute">1MIN</button>
+            <button class="px-2 py-1 rounded text-xs" aria-label="5 Minutes">5MIN</button>
+            <button class="px-2 py-1 rounded text-xs" aria-label="15 Minutes">15MIN</button>
+            <button class="px-2 py-1 rounded text-xs" aria-label="1 Hour">1H</button>
+            <button class="px-2 py-1 rounded text-xs" aria-label="4 Hours">4H</button>
+            <button class="px-2 py-1 rounded text-xs" aria-label="Daily">D</button>
+          </div>
+          <div class="hidden md:flex space-x-2" role="group" aria-label="Chart Types">
+            <button class="px-2 py-1 rounded text-xs bg-gray-700 border border-gray-600" aria-label="Candles Chart">Candles</button>
+            <button class="px-2 py-1 rounded text-xs border border-gray-600" aria-label="Heikin Ashi Chart">Heikin Ashi</button>
+            <button class="px-2 py-1 rounded text-xs border border-gray-600" aria-label="Line Chart">Line</button>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button class="p-1 rounded text-gray-400 hover:text-white" aria-label="Expand Chart">
+            <i class="fas fa-expand" aria-hidden="true"></i>
+          </button>
+          <button class="p-1 rounded text-gray-400 hover:text-white" aria-label="Chart Settings">
+            <i class="fas fa-cog" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <!-- Chart Container -->
+      <div class="chart-container bg-gray-800 rounded-b-lg p-2 relative">
+        <!-- In production: replace this canvas with a real charting widget (e.g. TradingView, ApexCharts, Chart.js) -->
+        <div class="h-full w-full grid-bg rounded relative overflow-hidden">
+          <canvas id="mockChart" width="800" height="500" class="w-full h-full" aria-label="Candlestick Chart"></canvas>
+          <!-- Pattern markers -->
+          <div class="pattern-markers pointer-events-none">
+            <div class="pattern-marker bg-green-600 text-white" style="top: 30%; left: 20%;">BOS</div>
+            <div class="pattern-marker bg-blue-600 text-white" style="top: 45%; left: 45%;">CHOCH</div>
+            <div class="pattern-marker bg-purple-600 text-white" style="top: 60%; left: 70%;">OB</div>
+          </div>
+        </div>
+        <!-- Chart watermark -->
+        <div id="watermark" class="absolute bottom-2 right-4 text-xs text-gray-500 select-none pointer-events-none"></div>
+      </div>
+      <!-- Signals Panel -->
+      <section class="mt-4 bg-gray-800 rounded-lg shadow p-4" aria-label="Live Signals">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-blue-400">Live Signals</h3>
+          <div class="text-xs">
+            <span class="py-1 px-2 rounded-full bg-gray-700">Detected: 3</span>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="p-3 rounded-md bg-gray-700 border-l-4 border-green-500 signal-buy">
+            <div class="flex justify-between items-center mb-1">
+              <div class="font-medium text-green-400">
+                <i class="fas fa-arrow-up mr-1" aria-hidden="true"></i> BUY EUR/USD
+              </div>
+              <span class="text-xs bg-green-900 text-green-300 py-0.5 px-1.5 rounded">High Confidence</span>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400">
+              <div>
+                <span>Entry: 1.0920</span>
+                <span class="mx-2">|</span>
+                <span>SL: 1.0895 (-25pips)</span>
+                <span class="mx-2">|</span>
+                <span>TP: 1.0955 (+35pips)</span>
+              </div>
+              <div>
+                <span>15min TF</span>
+                <span class="mx-2">|</span>
+                <span>Structure Break</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-3 rounded-md bg-gray-700 border-l-4 border-red-500 signal-sell">
+            <div class="flex justify-between items-center mb-1">
+              <div class="font-medium text-red-400">
+                <i class="fas fa-arrow-down mr-1" aria-hidden="true"></i> SELL GBP/USD
+              </div>
+              <span class="text-xs bg-yellow-900 text-yellow-300 py-0.5 px-1.5 rounded">Medium Confidence</span>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400">
+              <div>
+                <span>Entry: 1.2708</span>
+                <span class="mx-2">|</span>
+                <span>SL: 1.2728 (-20pips)</span>
+                <span class="mx-2">|</span>
+                <span>TP: 1.2668 (+40pips)</span>
+              </div>
+              <div>
+                <span>1H TF</span>
+                <span class="mx-2">|</span>
+                <span>Order Block</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-3 rounded-md bg-gray-700 border-l-4 border-indigo-500">
+            <div class="flex justify-between items-center mb-1">
+              <div class="font-medium text-indigo-400">
+                <i class="fas fa-eye mr-1" aria-hidden="true"></i> WATCH USD/JPY
+              </div>
+              <span class="text-xs bg-blue-900 text-blue-300 py-0.5 px-1.5 rounded">Potential</span>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400">
+              <div>
+                <span>Current: 148.92</span>
+                <span class="mx-2">|</span>
+                <span>Key Level: 149.20</span>
+              </div>
+              <div>
+                <span>4H TF</span>
+                <span class="mx-2">|</span>
+                <span>Liquidation Zone</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+    <!-- Right Sidebar -->
+    <aside class="lg:col-span-1 space-y-4" aria-label="Sidebar">
+      <!-- Risk Management Panel -->
+      <section class="bg-gray-800 rounded-lg shadow p-4" aria-label="Risk Management">
+        <h3 class="font-semibold text-blue-400 mb-3">Risk Management</h3>
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>Daily Risk Limit</span>
+              <span>2.5% / $250</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2" aria-label="Daily Risk Bar">
+              <div class="bg-red-500 h-2 rounded-full" style="width: 35%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>Max Position Size</span>
+              <span>5% / $500</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2" aria-label="Max Position Bar">
+              <div class="bg-blue-500 h-2 rounded-full" style="width: 20%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>Max Drawdown</span>
+              <span>10% / $1000</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2" aria-label="Drawdown Bar">
+              <div class="bg-yellow-500 h-2 rounded-full" style="width: 15%"></div>
+            </div>
+          </div>
+          <div class="pt-3 border-t border-gray-700">
+            <div class="flex justify-between text-xs text-gray-400">
+              <span>Open Positions:</span>
+              <span class="text-blue-400">3</span>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
+              <span>Total Exposure:</span>
+              <span class="text-purple-400">$750</span>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
+              <span>Available Margin:</span>
+              <span class="text-green-400">$9,250</span>
+            </div>
+          </div>
+          <button class="w-full mt-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-sm flex items-center justify-center" aria-label="Adjust Risk Settings">
+            <i class="fas fa-shield-alt mr-2" aria-hidden="true"></i> Adjust Risk Settings
+          </button>
+        </div>
+      </section>
+      <!-- Pattern Recognition -->
+      <section class="bg-gray-800 rounded-lg shadow p-4" aria-label="Detected Patterns">
+        <h3 class="font-semibold text-blue-400 mb-3">Detected Patterns</h3>
+        <div class="space-y-3">
+          <div class="flex space-x-3 p-2 hover:bg-gray-700 rounded cursor-pointer">
+            <div class="w-12 h-12 bg-gray-700 rounded flex items-center justify-center">
+              <i class="fas fa-chart-line text-lg text-yellow-500" aria-hidden="true"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-medium">Break of Structure</div>
+              <div class="text-xs text-gray-400">EUR/USD, 15min TF</div>
+            </div>
+            <div class="text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded-full h-6 self-center">82%</div>
+          </div>
+          <div class="flex space-x-3 p-2 hover:bg-gray-700 rounded cursor-pointer">
+            <div class="w-12 h-12 bg-gray-700 rounded flex items-center justify-center">
+              <i class="fas fa-chart-bar text-lg text-purple-500" aria-hidden="true"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-medium">Order Block</div>
+              <div class="text-xs text-gray-400">USD/JPY, 1H TF</div>
+            </div>
+            <div class="text-xs bg-green-900 text-green-300 px-2 py-1 rounded-full h-6 self-center">76%</div>
+          </div>
+          <div class="flex space-x-3 p-2 hover:bg-gray-700 rounded cursor-pointer">
+            <div class="w-12 h-12 bg-gray-700 rounded flex items-center justify-center">
+              <i class="fas fa-exchange-alt text-lg text-red-500" aria-hidden="true"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-medium">Liquidity Grab</div>
+              <div class="text-xs text-gray-400">GBP/USD, 4H TF</div>
+            </div>
+            <div class="text-xs bg-yellow-900 text-yellow-300 px-2 py-1 rounded-full h-6 self-center">68%</div>
+          </div>
+        </div>
+      </section>
+      <!-- System Notifications -->
+      <section class="bg-gray-800 rounded-lg shadow p-4" aria-label="System Log">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="font-semibold text-blue-400">System Log</h3>
+          <button class="text-xs text-gray-400" aria-label="More system log options">
+            <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="space-y-3 max-h-40 overflow-y-auto scrollbar-thin" id="system-log">
+          <div class="flex space-x-2 text-xs">
+            <div class="text-yellow-500 pt-0.5">
+              <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+            </div>
+            <div>
+              <div>New pattern detected: Fair Value Gap</div>
+              <div class="text-gray-500">2 mins ago</div>
+            </div>
+          </div>
+          <div class="flex space-x-2 text-xs">
+            <div class="text-green-500 pt-0.5">
+              <i class="fas fa-check-circle" aria-hidden="true"></i>
+            </div>
+            <div>
+              <div>Model retrained (accuracy +1.2%)</div>
+              <div class="text-gray-500">15 mins ago</div>
+            </div>
+          </div>
+          <div class="flex space-x-2 text-xs">
+            <div class="text-blue-500 pt-0.5">
+              <i class="fas fa-info-circle" aria-hidden="true"></i>
+            </div>
+            <div>
+              <div>Connected to broker (IC Markets)</div>
+              <div class="text-gray-500">32 mins ago</div>
+            </div>
+          </div>
+          <div class="flex space-x-2 text-xs">
+            <div class="text-purple-500 pt-0.5">
+              <i class="fas fa-network-wired" aria-hidden="true"></i>
+            </div>
+            <div>
+              <div>Streaming live price data</div>
+              <div class="text-gray-500">1 hr ago</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </main>
+  <!-- JavaScript for dynamic UI and accessibility -->
+  <script>
+    // Chart Drawing (Mock)
+    document.addEventListener('DOMContentLoaded', function() {
+      // Watermark: show live date/time
+      function updateWatermark() {
+        const now = new Date();
+        const dtStr = now.toLocaleDateString() + " " + now.toLocaleTimeString();
+        document.getElementById('watermark').textContent =
+          "AI-Powered by Forex Vision \u2022 " + dtStr;
+      }
+      updateWatermark();
+      setInterval(updateWatermark, 60000); // update every minute
+
+      // Mock Chart Drawing
+      const canvas = document.getElementById('mockChart');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Grid lines
+        ctx.strokeStyle = '#2d3748';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= width; x += width / 10) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= height; y += height / 8) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+
+        // Candles (demo data)
+        const candles = [
+          {x: 50, o: 60, h: 80, l: 40, c: 70, color: 'green'},
+          {x: 100, o: 70, h: 90, l: 60, c: 80, color: 'green'},
+          {x: 150, o: 80, h: 100, l: 70, c: 90, color: 'green'},
+          {x: 200, o: 90, h: 110, l: 85, c: 85, color: 'red'},
+          {x: 250, o: 85, h: 95, l: 60, c: 65, color: 'red'},
+          {x: 300, o: 65, h: 75, l: 50, c: 70, color: 'green'},
+          {x: 350, o: 70, h: 90, l: 65, c: 85, color: 'green'},
+          {x: 400, o: 85, h: 110, l: 80, c: 105, color: 'green'},
+          {x: 450, o: 105, h: 120, l: 95, c: 100, color: 'red'},
+          {x: 500, o: 100, h: 110, l: 90, c: 95, color: 'red'},
+          {x: 550, o: 95, h: 115, l: 90, c: 110, color: 'green'},
+          {x: 600, o: 110, h: 130, l: 105, c: 125, color: 'green'},
+          {x: 650, o: 125, h: 140, l: 120, c: 135, color: 'green'},
+          {x: 700, o: 135, h: 150, l: 130, c: 140, color: 'green'},
+          {x: 750, o: 140, h: 160, l: 135, c: 145, color: 'green'},
+        ];
+
+        // Scale candles to chart height
+        const scaleCandles = candles.map(c => ({
+          x: c.x,
+          o: height - (c.o * 2.5),
+          h: height - (c.h * 2.5),
+          l: height - (c.l * 2.5),
+          c: height - (c.c * 2.5),
+          color: c.color
+        }));
+
+        scaleCandles.forEach(candle => {
+          // Wick
+          ctx.strokeStyle = candle.color === 'green' ? '#10b981' : '#ef4444';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(candle.x, candle.h);
+          ctx.lineTo(candle.x, candle.l);
+          ctx.stroke();
+
+          // Body
+          ctx.fillStyle = candle.color === 'green' ? '#10b981' : '#ef4444';
+          const bodyY = Math.min(candle.o, candle.c);
+          const bodyH = Math.abs(candle.c - candle.o) || 2;
+          ctx.fillRect(candle.x - 6, bodyY, 12, bodyH);
+          ctx.strokeStyle = candle.color === 'green' ? '#059669' : '#dc2626';
+          ctx.strokeRect(candle.x - 6, bodyY, 12, bodyH);
+        });
+
+        // Trendlines
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(50, scaleCandles[0].l);
+        ctx.lineTo(350, scaleCandles[6].l);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#8b5cf6';
+        ctx.beginPath();
+        ctx.moveTo(200, scaleCandles[3].h);
+        ctx.lineTo(500, scaleCandles[9].h);
+        ctx.stroke();
+
+        // Supply zone
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+        ctx.beginPath();
+        ctx.moveTo(400, scaleCandles[7].h - 20);
+        ctx.lineTo(700, scaleCandles[7].h - 20);
+        ctx.lineTo(700, scaleCandles[7].h + 40);
+        ctx.lineTo(400, scaleCandles[7].h + 40);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+        ctx.stroke();
+
+        // Demand zone
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+        ctx.beginPath();
+        ctx.moveTo(100, scaleCandles[1].l + 20);
+        ctx.lineTo(250, scaleCandles[1].l + 20);
+        ctx.lineTo(250, scaleCandles[1].l - 40);
+        ctx.lineTo(100, scaleCandles[1].l - 40);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+        ctx.stroke();
+      }
+
+      // User Menu Dropdown Accessibility
+      const userMenu = document.getElementById('user-menu');
+      const menuDropdown = document.getElementById('menu-dropdown');
+      userMenu?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        menuDropdown.classList.toggle('hidden');
+        userMenu.setAttribute('aria-expanded', String(menuDropdown.classList.contains('hidden') ? 'false' : 'true'));
+      });
+      document.addEventListener('click', function(event) {
+        if (!userMenu.contains(event.target) && !menuDropdown.contains(event.target)) {
+          menuDropdown.classList.add('hidden');
+          userMenu.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      // Pair Search Filtering
+      const pairSearch = document.getElementById('pair-search');
+      const pairList = document.getElementById('pair-list');
+      pairSearch?.addEventListener('input', function() {
+        const term = this.value.toLowerCase();
+        const items = pairList.querySelectorAll('.pair-item');
+        items.forEach(item => {
+          const label = item.getAttribute('data-pair').toLowerCase();
+          item.style.display = label.includes(term) ? '' : 'none';
+        });
+      });
+    });
+  </script>
+</body>
+</html>
