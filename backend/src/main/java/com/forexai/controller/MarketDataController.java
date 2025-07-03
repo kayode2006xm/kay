@@ -1,57 +1,76 @@
 package com.forexai.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
 
-import java.util.*;
-import java.time.Instant;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * MarketDataController provides endpoints for live market candle data for the TradingView chart.
- * In production, integrate with a real data provider (e.g., TwelveData, AlphaVantage, broker API).
+ * Handles pattern upload endpoints.
+ * API: POST /api/patterns/upload (multipart/form-data)
  */
 @RestController
-@RequestMapping("/api/market")
-public class MarketDataController {
+@RequestMapping("/api/patterns")
+public class PatternController {
 
-    /**
-     * Example endpoint for fetching recent candles for a forex symbol and interval.
-     * In production, fetch real data from your data provider.
-     *
-     * @param symbol   e.g., "EURUSD"
-     * @param interval e.g., "1m", "5m", "15m"
-     * @return list of OHLC candles in TradingView format
-     */
-    @GetMapping("/candles")
-    public ResponseEntity<List<Map<String, Object>>> getCandles(
-            @RequestParam(defaultValue = "EURUSD") String symbol,
-            @RequestParam(defaultValue = "1m") String interval
+    // Where to save uploaded files (change as needed for production)
+    private static final String UPLOAD_DIR = "uploads/patterns/";
+
+    @PostMapping("/upload")
+    public ResponseEntity<?> uploadPattern(
+            @RequestParam("name") String name,
+            @RequestParam("description") String description,
+            @RequestParam(value = "file", required = false) MultipartFile file
     ) {
-        // TODO: Replace with real API integration for live data.
-        // Demo: generate 20 fake candles for now
-        List<Map<String, Object>> candles = new ArrayList<>();
-        long currentTime = Instant.now().getEpochSecond();
-        double open = 1.1000;
-        Random rand = new Random();
-
-        for (int i = 0; i < 20; i++) {
-            double high = open + 0.0015 * rand.nextDouble();
-            double low = open - 0.0015 * rand.nextDouble();
-            double close = low + (high - low) * rand.nextDouble();
-            Map<String, Object> candle = new HashMap<>();
-            candle.put("time", currentTime - (19 - i) * 60); // 1 min interval
-            candle.put("open", round(open));
-            candle.put("high", round(high));
-            candle.put("low", round(low));
-            candle.put("close", round(close));
-            candles.add(candle);
-            open = close; // next candle opens where previous closed
+        // Validate inputs
+        if (name == null || name.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Pattern name is required.");
+        }
+        if (description == null || description.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Pattern description is required.");
         }
 
-        return ResponseEntity.ok(candles);
-    }
+        String filename = null;
+        String fileUrl = null;
 
-    private double round(double val) {
-        return Math.round(val * 100000d) / 100000d;
+        if (file != null && !file.isEmpty()) {
+            try {
+                // Ensure upload directory exists
+                Files.createDirectories(Paths.get(UPLOAD_DIR));
+
+                // Clean filename, avoid path traversal
+                filename = System.currentTimeMillis() + "_" + StringUtils.cleanPath(file.getOriginalFilename());
+                Path filePath = Paths.get(UPLOAD_DIR, filename);
+                Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+                // Assuming the frontend can access /uploads/patterns/ via static mapping
+                fileUrl = "/uploads/patterns/" + filename;
+
+            } catch (IOException ex) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Failed to save uploaded file: " + ex.getMessage());
+            }
+        }
+
+        // TODO: Save pattern info (name, description, fileUrl) to a database if desired.
+
+        // Build response
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("name", name);
+        resp.put("description", description);
+        if (fileUrl != null) {
+            resp.put("fileUrl", fileUrl);
+            resp.put("filename", filename);
+        }
+
+        return ResponseEntity.ok(resp);
     }
 }
+
