@@ -6,19 +6,21 @@
   <title>AI Forex Trading Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Lightweight Charts (TradingView) -->
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
   <style>
     .chart-container { position: relative; height: 500px; }
     .pattern-markers { position: absolute; top: 0; left: 0; }
     .pattern-marker { position: absolute; border-radius: 4px; padding: 2px 4px; font-size: 10px; font-weight: bold; z-index: 10; }
-    .animated-gradient { background: linear-gradient(270deg,#3b82f6,#8b5cf6,#ec4899); background-size: 600% 600%; animation: gradientShift 8s ease infinite; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;}
+    .animated-gradient { background: linear-gradient(270deg, #3b82f6, #8b5cf6, #ec4899); background-size: 600% 600%; animation: gradientShift 8s ease infinite; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;}
     @keyframes gradientShift { 0% {background-position: 0% 50%} 50% {background-position: 100% 50%} 100% {background-position: 0% 50%} }
-    .grid-bg { background-image: radial-gradient(circle,#2d374850 1px,transparent 1px); background-size: 20px 20px; }
+    .grid-bg { background-image: radial-gradient(circle, #2d374850 1px, transparent 1px); background-size: 20px 20px; }
     .signal-buy { animation: pulseBuy 2s infinite; }
     .signal-sell { animation: pulseSell 2s infinite; }
-    @keyframes pulseBuy { 0% {box-shadow: 0 0 0 0 rgba(16,185,129,0.7)} 70% {box-shadow: 0 0 0 10px rgba(16,185,129,0)} 100% {box-shadow: 0 0 0 0 rgba(16,185,129,0)} }
-    @keyframes pulseSell { 0% {box-shadow: 0 0 0 0 rgba(239,68,68,0.7)} 70% {box-shadow: 0 0 0 10px rgba(239,68,68,0)} 100% {box-shadow: 0 0 0 0 rgba(239,68,68,0)} }
+    @keyframes pulseBuy { 0% {box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7)} 70% {box-shadow: 0 0 0 10px rgba(16, 185, 129, 0)} 100% {box-shadow: 0 0 0 0 rgba(16, 185, 129, 0)} }
+    @keyframes pulseSell { 0% {box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7)} 70% {box-shadow: 0 0 0 10px rgba(239, 68, 68, 0)} 100% {box-shadow: 0 0 0 0 rgba(239, 68, 68, 0)} }
     .drawing-tool { transition: all 0.2s ease; }
-    .drawing-tool:hover { transform: scale(1.1); background-color: rgba(59,130,246,0.2);}
+    .drawing-tool:hover { transform: scale(1.1); background-color: rgba(59, 130, 246, 0.2);}
     .scrollbar-thin { scrollbar-width: thin; scrollbar-color: #3b82f6 #1f2937; }
     .scrollbar-thin::-webkit-scrollbar { width: 6px; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 8px;}
@@ -26,7 +28,28 @@
   </style>
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans min-h-screen">
-  <!-- Header and all your original content go here (unchanged) -->
+  <!-- Header and sidebar code unchanged, keep your original markup here -->
+
+  <!-- Main Chart Area -->
+  <section class="lg:col-span-2">
+    <!-- Chart Toolbar: keep your toolbar code unchanged here -->
+
+    <!-- TradingView Chart Container (replace old canvas) -->
+    <div class="chart-container bg-gray-800 rounded-b-lg p-2 relative">
+      <div class="h-full w-full grid-bg rounded relative overflow-hidden">
+        <div id="container" style="width:100%;height:500px;"></div>
+        <!-- Pattern markers -->
+        <div class="pattern-markers pointer-events-none">
+          <div class="pattern-marker bg-green-600 text-white" style="top: 30%; left: 20%;">BOS</div>
+          <div class="pattern-marker bg-blue-600 text-white" style="top: 45%; left: 45%;">CHOCH</div>
+          <div class="pattern-marker bg-purple-600 text-white" style="top: 60%; left: 70%;">OB</div>
+        </div>
+      </div>
+      <!-- Chart watermark -->
+      <div id="watermark" class="absolute bottom-2 right-4 text-xs text-gray-500 select-none pointer-events-none"></div>
+    </div>
+    <!-- Signals Panel and other chart-area content go here... -->
+  </section>
 
   <!-- Pattern Upload Section -->
   <section class="bg-gray-800 rounded-lg shadow p-4 my-6 max-w-xl mx-auto">
@@ -48,26 +71,79 @@
     <div id="sentiment-result" class="mt-2 text-sm"></div>
   </section>
 
-  <!-- Example Chart Area with demo candles removed -->
-  <div class="chart-container bg-gray-800 rounded-b-lg p-2 relative max-w-4xl mx-auto mt-8">
-    <div class="h-full w-full grid-bg rounded relative overflow-hidden">
-      <canvas id="mockChart" width="800" height="500" class="w-full h-full" aria-label="Candlestick Chart"></canvas>
-      <!-- Pattern markers -->
-      <div class="pattern-markers pointer-events-none">
-        <div class="pattern-marker bg-green-600 text-white" style="top: 30%; left: 20%;">BOS</div>
-        <div class="pattern-marker bg-blue-600 text-white" style="top: 45%; left: 45%;">CHOCH</div>
-        <div class="pattern-marker bg-purple-600 text-white" style="top: 60%; left: 70%;">OB</div>
-      </div>
-    </div>
-    <div id="watermark" class="absolute bottom-2 right-4 text-xs text-gray-500 select-none pointer-events-none"></div>
-  </div>
-
-  <!-- JavaScript for dynamic UI and live API integration -->
+  <!-- JavaScript for dynamic UI, TradingView Chart, and live API integration -->
   <script>
-    // Live API integration for Java backend
-    const API_BASE = window.location.origin; // Change if backend is on a different domain
+    // Watermark: show live date/time
+    function updateWatermark() {
+      const now = new Date();
+      const dtStr = now.toLocaleDateString() + " " + now.toLocaleTimeString();
+      const watermark = document.getElementById('watermark');
+      if (watermark) {
+        watermark.textContent = "AI-Powered by Forex Vision \u2022 " + dtStr;
+      }
+    }
+    updateWatermark();
+    setInterval(updateWatermark, 60000);
+
+    // TradingView Lightweight Chart Setup
+    document.addEventListener('DOMContentLoaded', function () {
+      const chartOptions = {
+        layout: {
+          textColor: 'black',
+          background: { type: 'solid', color: 'white' }
+        },
+        rightPriceScale: { visible: true },
+        timeScale: { timeVisible: true, secondsVisible: false },
+        width: document.getElementById('container').offsetWidth,
+        height: 500
+      };
+      const chart = LightweightCharts.createChart(document.getElementById('container'), chartOptions);
+
+      // Candle series: fetch real data from backend
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderVisible: false,
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350'
+      });
+
+      // Fetch and render candles from your backend
+      async function fetchCandleData() {
+        // Replace with your backend endpoint!
+        // Response example: [{time: 1642425322, open:1.1, high:1.2, low:1.0, close:1.15}, ...]
+        const resp = await fetch('/api/market/candles?symbol=EURUSD&interval=1m');
+        const data = await resp.json();
+        // Transform to Lightweight Charts data format
+        return data.map(c => ({
+          time: c.t || c.time, // support either property
+          open: c.o || c.open,
+          high: c.h || c.high,
+          low: c.l || c.low,
+          close: c.c || c.close
+        }));
+      }
+
+      fetchCandleData().then(candleData => {
+        candleSeries.setData(candleData);
+        chart.timeScale().fitContent();
+      });
+
+      // Example of adding area or line series if needed
+      // const areaSeries = chart.addAreaSeries({ ... });
+      // const lineSeries = chart.addLineSeries({ ... });
+
+      // Utility: convert unix timestamp to timezone
+      function timeToTz(originalTime, timeZone) {
+        const date = new Date(originalTime * 1000);
+        const tzDate = new Date(date.toLocaleString('en-US', { timeZone }));
+        return Math.floor(tzDate.getTime() / 1000);
+      }
+      // Usage: timeToTz(1642425322, 'America/New_York');
+    });
 
     // Pattern Upload Handler
+    const API_BASE = window.location.origin;
     document.getElementById('pattern-upload-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       const formData = new FormData();
@@ -111,23 +187,38 @@
       }
     };
 
-    // WATERMARK ONLY, NO DEMO CANDLES
+    // User Menu Dropdown Accessibility
     document.addEventListener('DOMContentLoaded', function() {
-      function updateWatermark() {
-        const now = new Date();
-        const dtStr = now.toLocaleDateString() + " " + now.toLocaleTimeString();
-        const watermark = document.getElementById('watermark');
-        if (watermark) {
-          watermark.textContent = "AI-Powered by Forex Vision \u2022 " + dtStr;
-        }
+      const userMenu = document.getElementById('user-menu');
+      const menuDropdown = document.getElementById('menu-dropdown');
+      if (userMenu && menuDropdown) {
+        userMenu.addEventListener('click', function(e) {
+          e.stopPropagation();
+          menuDropdown.classList.toggle('hidden');
+          userMenu.setAttribute('aria-expanded', String(menuDropdown.classList.contains('hidden') ? 'false' : 'true'));
+        });
+        document.addEventListener('click', function(event) {
+          if (!userMenu.contains(event.target) && !menuDropdown.contains(event.target)) {
+            menuDropdown.classList.add('hidden');
+            userMenu.setAttribute('aria-expanded', 'false');
+          }
+        });
       }
-      updateWatermark();
-      setInterval(updateWatermark, 60000); // update every minute
 
-      // If you want to draw live candles, do it here using data from your backend or API instead of demo data!
-      // (No demo candles rendered)
+      // Pair Search Filtering
+      const pairSearch = document.getElementById('pair-search');
+      const pairList = document.getElementById('pair-list');
+      if (pairSearch && pairList) {
+        pairSearch.addEventListener('input', function() {
+          const term = this.value.toLowerCase();
+          const items = pairList.querySelectorAll('.pair-item');
+          items.forEach(item => {
+            const label = item.getAttribute('data-pair').toLowerCase();
+            item.style.display = label.includes(term) ? '' : 'none';
+          });
+        });
+      }
     });
   </script>
 </body>
 </html>
-
