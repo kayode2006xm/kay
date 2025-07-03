@@ -1,76 +1,79 @@
 package com.forexai.controller;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
-/**
- * Handles pattern upload endpoints.
- * API: POST /api/patterns/upload (multipart/form-data)
- */
 @RestController
-@RequestMapping("/api/patterns")
-public class PatternController {
+@RequestMapping("/api/market")
+public class MarketController {
 
-    // Where to save uploaded files (change as needed for production)
-    private static final String UPLOAD_DIR = "uploads/patterns/";
+    @Value("${marketdata.api.baseurl}")
+    private String marketDataApiBaseUrl;
 
-    @PostMapping("/upload")
-    public ResponseEntity<?> uploadPattern(
-            @RequestParam("name") String name,
-            @RequestParam("description") String description,
-            @RequestParam(value = "file", required = false) MultipartFile file
-    ) {
-        // Validate inputs
-        if (name == null || name.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("Pattern name is required.");
+    @Value("${marketdata.api.key:}") // Optional: If your provider requires an API key
+    private String marketDataApiKey;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    /**
+     * Get latest price for a symbol (e.g. EURUSD, GBPUSD).
+     */
+    @GetMapping("/price")
+    public ResponseEntity<?> getLatestPrice(@RequestParam(defaultValue = "EURUSD") String symbol) {
+        // Example: GET {baseurl}/price?symbol=EURUSD
+        String url = String.format("%s/price?symbol=%s", marketDataApiBaseUrl, symbol);
+
+        HttpHeaders headers = new HttpHeaders();
+        if (marketDataApiKey != null && !marketDataApiKey.isEmpty()) {
+            headers.set("Authorization", "Bearer " + marketDataApiKey);
         }
-        if (description == null || description.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("Pattern description is required.");
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                Map.class
+            );
+            return ResponseEntity.ok(response.getBody());
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("Failed to fetch live market price.");
         }
-
-        String filename = null;
-        String fileUrl = null;
-
-        if (file != null && !file.isEmpty()) {
-            try {
-                // Ensure upload directory exists
-                Files.createDirectories(Paths.get(UPLOAD_DIR));
-
-                // Clean filename, avoid path traversal
-                filename = System.currentTimeMillis() + "_" + StringUtils.cleanPath(file.getOriginalFilename());
-                Path filePath = Paths.get(UPLOAD_DIR, filename);
-                Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-                // Assuming the frontend can access /uploads/patterns/ via static mapping
-                fileUrl = "/uploads/patterns/" + filename;
-
-            } catch (IOException ex) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("Failed to save uploaded file: " + ex.getMessage());
-            }
-        }
-
-        // TODO: Save pattern info (name, description, fileUrl) to a database if desired.
-
-        // Build response
-        Map<String, Object> resp = new HashMap<>();
-        resp.put("name", name);
-        resp.put("description", description);
-        if (fileUrl != null) {
-            resp.put("fileUrl", fileUrl);
-            resp.put("filename", filename);
-        }
-
-        return ResponseEntity.ok(resp);
     }
+
+    /**
+     * Get available pairs (instruments) from your provider.
+     */
+    @GetMapping("/pairs")
+    public ResponseEntity<?> getAvailablePairs() {
+        // Example: GET {baseurl}/pairs or /symbols
+        String url = String.format("%s/pairs", marketDataApiBaseUrl);
+
+        HttpHeaders headers = new HttpHeaders();
+        if (marketDataApiKey != null && !marketDataApiKey.isEmpty()) {
+            headers.set("Authorization", "Bearer " + marketDataApiKey);
+        }
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<List> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                List.class
+            );
+            return ResponseEntity.ok(response.getBody());
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("Failed to fetch pairs list.");
+        }
+    }
+
+    // You can add more endpoints as needed (orderbook, spreads, etc.)
 }
+
 
